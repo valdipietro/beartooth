@@ -3,7 +3,6 @@
  * access_delete.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * push: access delete
- * 
- * @package beartooth\ui
  */
 class access_delete extends \cenozo\ui\push\access_delete
 {
@@ -41,7 +38,8 @@ class access_delete extends \cenozo\ui\push\access_delete
   protected function convert_to_noid( $args )
   {
     $args = parent::convert_to_noid( $args );
-    $args['noid']['access']['site_id']['cohort'] = 'comprehensive';
+    $args['noid']['access']['site_id']['cohort'] =
+      lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
     return $args;
   }
 }

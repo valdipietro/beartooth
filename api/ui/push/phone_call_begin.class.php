@@ -3,7 +3,6 @@
  * phone_call_begin.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: phone_call begin
  *
  * Assigns a participant to a phone call.
- * @package beartooth\ui
  */
 class phone_call_begin extends \cenozo\ui\push
 {
@@ -40,10 +38,19 @@ class phone_call_begin extends \cenozo\ui\push
   {
     parent::validate();
 
-    $db_assignment = $session->get_current_assignment();
+    $session = lib::create( 'business\session' );
+
+    // if the user is already in a phone call then don't start another one
+    $db_phone_call = $session->get_current_phone_call();
+    if( !is_null( $db_phone_call ) )
+      throw lib::create( 'exception\notice',
+        'You are already registered in a call, please refresh the application. '.
+        'If this problem persists please report it to your coordinator.',
+        __METHOD__ );
 
     // make sure that interviewers are calling their current assignment only
-    if( 'interviewer' == lib::create( 'business\session' )->get_role()->name )
+    $db_assignment = $session->get_current_assignment();
+    if( 'interviewer' == $session->get_role()->name )
       if( is_null( $db_assignment ) )
         throw lib::create( 'exception\runtime',
           'Interviewer tried to make call without an assignment.', __METHOD__ );

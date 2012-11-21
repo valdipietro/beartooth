@@ -3,7 +3,6 @@
  * productivity_report.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * Productivity report data.
  * 
  * @abstract
- * @package beartooth\ui
  */
 class productivity_report extends \cenozo\ui\pull\base_report
 {
@@ -32,15 +30,12 @@ class productivity_report extends \cenozo\ui\pull\base_report
   }
 
   /**
-   * Sets up the operation with any pre-execution instructions that may be necessary.
-   * 
+   * Builds the report.
    * @author Patrick Emond <emondpd@mcmaster.ca>
    * @access protected
    */
-  protected function setup()
+  protected function build()
   {
-    parent::setup();
-
     // determine whether or not to round time to 15 minute increments
     $round_times = $this->get_argument( 'round_times', true );
 

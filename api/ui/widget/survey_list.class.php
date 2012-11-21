@@ -3,7 +3,6 @@
  * survey_list.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * widget survey list
- * 
- * @package beartooth\ui
  */
 class survey_list extends \cenozo\ui\widget\base_list
 {
@@ -75,7 +72,7 @@ class survey_list extends \cenozo\ui\widget\base_list
    * @return int
    * @access protected
    */
-  protected function determine_record_count( $modifier = NULL )
+  public function determine_record_count( $modifier = NULL )
   {
     if( NULL == $modifier ) $modifier = lib::create( 'database\modifier' );
     $modifier->where( 'active', '=', 'Y' );
@@ -90,7 +87,7 @@ class survey_list extends \cenozo\ui\widget\base_list
    * @return array( record )
    * @access protected
    */
-  protected function determine_record_list( $modifier = NULL )
+  public function determine_record_list( $modifier = NULL )
   {
     if( NULL == $modifier ) $modifier = lib::create( 'database\modifier' );
     $modifier->where( 'active', '=', 'Y' );

@@ -3,7 +3,6 @@
  * onyx_consent.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: onyx consent
  * 
  * Allows Onyx to update consent and interview details
- * @package beartooth\ui
  */
 class onyx_consent extends \cenozo\ui\push
 {
@@ -42,7 +40,12 @@ class onyx_consent extends \cenozo\ui\push
     $participant_class_name = lib::create( 'database\participant' );
 
     // get the body of the request
-    $data = json_decode( http_get_request_body() );
+    $body = http_get_request_body();
+    $data = util::json_decode( $body );
+
+    if( !is_object( $data ) )
+      throw lib::create( 'exception\runtime',
+        'Unable to decode request body, received: '.print_r( $body, true ), __METHOD__ );
 
     // loop through the consent array
     foreach( $data->Consent as $consent_list )
@@ -63,10 +66,23 @@ class onyx_consent extends \cenozo\ui\push
         else if( 'RETRACT' == $consent_data->ConclusiveStatus ) $event = 'retract';
         else $event = 'withdraw';
 
-        if( !array_key_exists( 'timeEnd', $object_vars ) )
-          throw lib::create( 'exception\argument',
-            'timeEnd', NULL, __METHOD__ );
-        $date = util::get_datetime_object( $consent_data->timeEnd )->format( 'Y-m-d' );
+        // try timeEnd, if null then try timeStart, if null then use today's date
+        $var_name = 'timeEnd';
+        if( array_key_exists( 'timeEnd', $object_vars ) &&
+            0 < strlen( $consent_data->timeEnd ) )
+        {
+          $date_obj = util::get_datetime_object( $consent_data->timeEnd );
+        }
+        else if( array_key_exists( 'timeStart', $object_vars ) &&
+                 0 < strlen( $consent_data->timeStart ) )
+        {
+          $date_obj = util::get_datetime_object( $consent_data->timeStart );
+        }
+        else
+        {
+          $date_obj = util::get_datetime_object();
+        }
+        $date = $date_obj->format( 'Y-m-d' );
 
         // update the draw blood consent if it is provided
         if( array_key_exists( 'PCF_CSTSAMP_COM', $object_vars ) )

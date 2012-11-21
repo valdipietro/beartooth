@@ -3,7 +3,6 @@
  * user_edit.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: user edit
  *
  * Edit a user.
- * @package beartooth\ui
  */
 class user_edit extends \cenozo\ui\push\user_edit
 {
@@ -30,6 +28,23 @@ class user_edit extends \cenozo\ui\push\user_edit
 
     $this->set_machine_request_enabled( true );
     $this->set_machine_request_url( MASTODON_URL );
+  }
+
+  /** 
+   * Sets up the operation with any pre-execution instructions that may be necessary.
+   * 
+   * @author Patrick Emond <emondpd@mcmaster.ca>
+   * @access protected
+   */
+  protected function setup()
+  {
+    parent::setup();
+
+    $columns = $this->get_argument( 'columns', array() );
+
+    // don't send information 
+    if( array_key_exists( 'language', $columns ) ) 
+      $this->set_machine_request_enabled( false );
   }
 }
 ?>

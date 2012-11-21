@@ -3,7 +3,6 @@
  * onyx_participants.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -16,7 +15,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * Allows Onyx to update participant and interview details
  * NOTE: this class breaks the non-plural words naming convension in order to play
  *       nicely with Onyx
- * @package beartooth\ui
  */
 class onyx_participants extends \cenozo\ui\push
 {
@@ -43,9 +41,15 @@ class onyx_participants extends \cenozo\ui\push
 
     $participant_class_name = lib::create( 'database\participant' );
     $interview_class_name = lib::create( 'database\interview' );
+    $qnaire_class_name = lib::create( 'database\qnaire' );
 
     // get the body of the request
-    $data = json_decode( http_get_request_body() );
+    $body = http_get_request_body();
+    $data = util::json_decode( $body );
+
+    if( !is_object( $data ) )
+      throw lib::create( 'exception\runtime',
+        'Unable to decode request body, received: '.print_r( $body, true ), __METHOD__ );
 
     // loop through the participants array
     foreach( $data->Participants as $participant_list )
@@ -212,7 +216,7 @@ class onyx_participants extends \cenozo\ui\push
           }
         }
 
-        // now update the participant, appointment andinterview, then pass data to mastodon
+        // now update the participant, appointment and interview, then pass data to mastodon
         if( $participant_changed ) $db_participant->save();
 
         // complete all appointments in the past
@@ -228,17 +232,26 @@ class onyx_participants extends \cenozo\ui\push
         
         if( 'completed' == $interview_status )
         {
+          // get the most recent interview of the appropriate type
           $interview_mod = lib::create( 'database\modifier' );
           $interview_mod->where( 'participant_id', '=', $db_participant->id );
           if( $interview_type ) $interview_mod->where( 'qnaire.type', '=', $interview_type );
-          $interview_mod->where( 'completed', '=', false );
+          $interview_mod->order_desc( 'qnaire.rank' );
           $interview_list = $interview_class_name::select( $interview_mod );
-          if( 1 == count( $interview_list ) )
-          {
-            $db_interview = current( $interview_list );
-            $db_interview->completed = true;
-            $db_interview->save();
-          }
+          
+          // make sure the interview exists
+          if( 0 == count( $interview_list ) )
+            throw lib::create( 'exception\runtime',
+              sprintf( 'Trying to export %s interview for participant %s but the '.
+                       'interview doesn\'t exist.',
+                       $interview_type,
+                       $db_participant->uid ),
+              __METHOD__ );
+          
+          // mark the interview as completed
+          $db_interview = current( $interview_list );
+          $db_interview->completed = true;
+          $db_interview->save();
         }
 
         if( 0 < count( $mastodon_columns ) )

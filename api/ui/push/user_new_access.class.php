@@ -3,7 +3,6 @@
  * user_new_access.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * push: user new_access
- * 
- * @package beartooth\ui
  */
 class user_new_access extends \cenozo\ui\push\user_new_access
 {
@@ -42,7 +39,8 @@ class user_new_access extends \cenozo\ui\push\user_new_access
   {
     $args = parent::convert_to_noid( $args );
     foreach( $args['noid']['site_list'] as $key => $value )
-      $args['noid']['site_list'][$key]['cohort'] = 'comprehensive';
+      $args['noid']['site_list'][$key]['cohort'] =
+        lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
     return $args;
   }
 }

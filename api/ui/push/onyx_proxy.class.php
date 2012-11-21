@@ -3,7 +3,6 @@
  * onyx_proxy.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: onyx proxy
  * 
  * Allows Onyx to update proxy and interview details
- * @package beartooth\ui
  */
 class onyx_proxy extends \cenozo\ui\push
 {
@@ -46,10 +44,14 @@ class onyx_proxy extends \cenozo\ui\push
     $db_onyx_user = lib::create( 'business\session' )->get_user();
     $db_onyx_instance =
       $onyx_instance_class_name::get_unique_record( 'user_id', $db_onyx_user->id );
+
+    // get the user who is sending the request
+    // NOTE: if this is a site instance then there is no interviewer, so use the instance itself
     $db_user = $db_onyx_instance->get_interviewer_user();
+    if( is_null( $db_user ) ) $db_user = $db_onyx_instance->get_user();
 
     // get the body of the request
-    $data = json_decode( http_get_request_body() );
+    $data = util::json_decode( http_get_request_body() );
 
     // loop through the proxy array, if everything works then send the data to
     // Mastodon as a new alternate, if anything goes wrong then send it into the
@@ -58,9 +60,11 @@ class onyx_proxy extends \cenozo\ui\push
     {
       foreach( get_object_vars( $proxy_list ) as $uid => $proxy_data )
       {
+        $object_vars = get_object_vars( $proxy_data );
+        if( 1 >= count( $object_vars ) ) continue;
+
         $noid = array( 'user.name' => $db_user->name );
         $entry = array();
-        $object_vars = get_object_vars( $proxy_data );
 
         $db_participant = $participant_class_name::get_unique_record( 'uid', $uid );
         if( is_null( $db_participant ) )
@@ -69,11 +73,19 @@ class onyx_proxy extends \cenozo\ui\push
             __METHOD__ );
         $entry['uid'] = $db_participant->uid;
 
+        // try timeEnd, if null then try timeStart
         $var_name = 'timeEnd';
-        if( !array_key_exists( $var_name, $object_vars ) || 0 == strlen( $proxy_data->$var_name ) )
-          throw lib::create( 'exception\argument',
-            'timeEnd', NULL, __METHOD__ );
-        $entry['date'] = util::get_datetime_object( $proxy_data->timeEnd )->format( 'Y-m-d' );
+        if( !array_key_exists( $var_name, $object_vars ) ||
+            0 == strlen( $proxy_data->$var_name ) )
+        {
+          $var_name = 'timeStart';
+          if( !array_key_exists( $var_name, $object_vars ) ||
+              0 == strlen( $proxy_data->$var_name ) )
+            throw lib::create( 'exception\argument',
+              $var_name, NULL, __METHOD__ );
+        
+        }
+        $entry['date'] = util::get_datetime_object( $proxy_data->$var_name )->format( 'Y-m-d' );
 
         $var_name = 'ICF_IDPROXY_COM';
         $entry['proxy'] =
@@ -96,9 +108,9 @@ class onyx_proxy extends \cenozo\ui\push
         $var_name = 'ICF_PXADD_COM';
         if( array_key_exists( $var_name, $object_vars ) && 0 < strlen( $proxy_data->$var_name ) )
         {
-          $parts = explode( ' ', $proxy_data->$var_name, 2 );
-          $entry['proxy_street_number'] = $parts[0];
-          $entry['proxy_street_name'] = $parts[1];
+          $parts = explode( ' ', trim( $proxy_data->$var_name ), 2 );
+          $entry['proxy_street_number'] = array_key_exists( 0, $parts ) ? $parts[0] : NULL;
+          $entry['proxy_street_name'] = array_key_exists( 0, $parts ) ? $parts[1] : NULL;
         }
 
         $var_name = 'ICF_PXADD2_COM';
@@ -167,9 +179,9 @@ class onyx_proxy extends \cenozo\ui\push
         $var_name = 'ICF_INFADD_COM';
         if( array_key_exists( $var_name, $object_vars ) && 0 < strlen( $proxy_data->$var_name ) )
         {
-          $parts = explode( ' ', $proxy_data->$var_name, 2 );
-          $entry['informant_street_number'] = $parts[0];
-          $entry['informant_street_name'] = $parts[1];
+          $parts = explode( ' ', trim( $proxy_data->$var_name ), 2 );
+          $entry['informant_street_number'] = array_key_exists( 0, $parts ) ? $parts[0] : NULL;
+          $entry['informant_street_name'] = array_key_exists( 1, $parts ) ? $parts[1] : NULL;
         }
 
         $var_name = 'ICF_INFADD2_COM';

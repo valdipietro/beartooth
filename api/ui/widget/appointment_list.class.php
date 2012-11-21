@@ -3,7 +3,6 @@
  * appointment_list.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * widget appointment list
- * 
- * @package beartooth\ui
  */
 class appointment_list extends site_restricted_list
 {
@@ -41,6 +38,7 @@ class appointment_list extends site_restricted_list
   {
     parent::prepare();
 
+    $this->add_column( 'user.name', 'string', 'Interviewer', true );
     $this->add_column( 'uid', 'string', 'UID', false );
     $this->add_column( 'address', 'string', 'Address', false );
     $this->add_column( 'datetime', 'datetime', 'Date', true );
@@ -50,19 +48,23 @@ class appointment_list extends site_restricted_list
 
     // don't add appointments if this list isn't parented
     if( is_null( $this->parent ) ) $this->set_addable( false );
-    else
+    else if( $this->get_addable() )
     {
-      // don't add appointments if the parent already has an incomplete appointment
+      // don't add appointments if the parent already has an incomplete appointment in the future
       $appointment_class_name = lib::get_class_name( 'database\appointment' );
       $appointment_mod = lib::create( 'database\modifier' );
       $appointment_mod->where( 'participant_id', '=', $this->parent->get_record()->id );
       $appointment_mod->where( 'completed', '=', false );
+      $appointment_mod->where(
+        'datetime', '>', util::get_datetime_object()->format( 'Y-m-d H:i:s' ) );
       $this->set_addable( 0 == $appointment_class_name::count( $appointment_mod ) );
 
-      // don't add HOME appointments if the user isn't an interviewer
-      if( 'home' == $this->parent->get_record()->current_qnaire_type &&
-          'interviewer' != lib::create( 'business\session' )->get_role()->name )
-        $this->set_addable( false );
+      // don't add appointments if the user isn't currently assigned to the participant
+      $db_assignment = lib::create( 'business\session' )->get_current_assignment();
+      if( is_null( $db_assignment ) ||
+          $db_assignment->get_interview()->get_participant()->id !=
+          $this->parent->get_record()->id )
+        $this->addable = false;
     }
   }
   
@@ -88,8 +90,10 @@ class appointment_list extends site_restricted_list
           $db_address->get_region()->abbreviation,
           $db_address->postcode );
 
+      $db_user = $record->get_user();
       $this->add_row( $record->id,
-        array( 'uid' => $record->get_participant()->uid,
+        array( 'user.name' => is_null( $db_user ) ? 'none' : $record->get_user()->name,
+               'uid' => $record->get_participant()->uid,
                'address' => $address,
                'datetime' => $record->datetime,
                'state' => $record->get_state() ) );

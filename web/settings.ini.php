@@ -11,10 +11,13 @@ global $SETTINGS;
 
 // tagged version
 $SETTINGS['general']['application_name'] = 'beartooth';
-$SETTINGS['general']['version'] = '0.2.2';
+$SETTINGS['general']['version'] = '1.0.5';
 
 // always leave as false when running as production server
 $SETTINGS['general']['development_mode'] = false;
+
+// the name of the cohort associated with this application
+$SETTINGS['general']['cohort'] = 'default';
 
 // the location of beartooth internal path
 $SETTINGS['path']['APPLICATION'] = '/usr/local/lib/beartooth';

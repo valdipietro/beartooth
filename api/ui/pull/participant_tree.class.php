@@ -3,7 +3,6 @@
  * participant_tree.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * pull participant tree
- * 
- * @package beartooth\ui
  */
 class participant_tree extends \cenozo\ui\pull
 {
@@ -49,6 +46,8 @@ class participant_tree extends \cenozo\ui\pull
       $db_site = $site_id ? lib::create( 'database\site', $site_id ) : NULL;
     }
     
+    $restrict_language = $this->get_argument( 'restrict_language', 'any' );
+
     $current_date = util::get_datetime_object()->format( 'Y-m-d' );
     $viewing_date = $this->get_argument( 'viewing_date', 'current' );
     if( $current_date == $viewing_date ) $viewing_date = 'current';
@@ -62,6 +61,22 @@ class participant_tree extends \cenozo\ui\pull
     $this->data = array();
     foreach( $queue_class_name::select() as $db_queue )
     {
+      // restrict by language
+      // Note: a new queue mod needs to be created for every iteration of the loop
+      $participant_mod = lib::create( 'database\modifier' );
+      if( 'any' != $restrict_language )
+      {
+        // english is default, so if the language is english allow null values
+        if( 'en' == $restrict_language )
+        {
+          $participant_mod->where_bracket( true );
+          $participant_mod->where( 'participant_language', '=', $restrict_language );
+          $participant_mod->or_where( 'participant_language', '=', NULL );
+          $participant_mod->where_bracket( false );
+        }
+        else $participant_mod->where( 'participant_language', '=', $restrict_language );
+      }
+
       // restrict queue based on user's role
       if( !$is_top_tier ) $db_queue->set_site( $session->get_site() );
       else if( !is_null( $db_site ) ) $db_queue->set_site( $db_site );
@@ -70,7 +85,7 @@ class participant_tree extends \cenozo\ui\pull
       if( !$db_queue->qnaire_specific )
       {
         $index = sprintf( '%d_%d', 0, $db_queue->id );
-        $this->data[$index] = $db_queue->get_participant_count();
+        $this->data[$index] = $db_queue->get_participant_count( $participant_mod );
       }
       else // handle queues which are qnaire specific
       {
@@ -78,7 +93,7 @@ class participant_tree extends \cenozo\ui\pull
         {
           $db_queue->set_qnaire( $db_qnaire );
           $index = sprintf( '%d_%d', $db_qnaire->id, $db_queue->id );
-          $this->data[$index] = $db_queue->get_participant_count();
+          $this->data[$index] = $db_queue->get_participant_count( $participant_mod );
         }
       }
     }

@@ -3,7 +3,6 @@
  * queue_list.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * widget queue list
- * 
- * @package beartooth\ui
  */
 class queue_list extends \cenozo\ui\widget\base_list
 {
@@ -53,7 +50,11 @@ class queue_list extends \cenozo\ui\widget\base_list
     $this->add_column( 'description', 'text', 'Description', true, true, 'left' );
     $session = lib::create( 'business\session' );
     if( 3 != $session->get_role()->tier )
-      $this->set_heading( $this->get_heading().' for '.$session->get_site()->name );
+      $this->set_heading(
+        sprintf( '%s %s for %s',
+                 $this->get_subject(),
+                 $this->get_name(),
+                 $session->get_site()->name ) );
   }
 
   /**
@@ -66,6 +67,11 @@ class queue_list extends \cenozo\ui\widget\base_list
   {
     parent::setup();
     
+    $site_class_name = lib::get_class_name( 'database\site' );
+    $qnaire_class_name = lib::get_class_name( 'database\qnaire' );
+    $queue_class_name = lib::get_class_name( 'database\queue' );
+    $participant_class_name = lib::get_class_name( 'database\participant' );
+
     $session = lib::create( 'business\session' );
     $is_top_tier = 3 == $session->get_role()->tier;
     
@@ -73,8 +79,7 @@ class queue_list extends \cenozo\ui\widget\base_list
     if( $is_top_tier )
     {
       $sites = array();
-      $class_name = lib::get_class_name( 'database\site' );
-      foreach( $class_name::select() as $db_site )
+      foreach( $site_class_name::select() as $db_site )
         $sites[$db_site->id] = $db_site->name;
       $this->set_variable( 'sites', $sites );
     }
@@ -86,8 +91,7 @@ class queue_list extends \cenozo\ui\widget\base_list
                       : NULL;
 
     $qnaires = array();
-    $class_name = lib::get_class_name( 'database\qnaire' );
-    foreach( $class_name::select() as $db_qnaire )
+    foreach( $qnaire_class_name::select() as $db_qnaire )
       $qnaires[$db_qnaire->id] = $db_qnaire->name;
     $this->set_variable( 'qnaires', $qnaires );
     
@@ -97,6 +101,14 @@ class queue_list extends \cenozo\ui\widget\base_list
                         ? lib::create( 'database\qnaire', $restrict_qnaire_id )
                         : NULL;
     
+    $languages = array( 'any' );
+    foreach( $participant_class_name::get_enum_values( 'language' ) as $language )
+      $languages[] = $language;
+    $this->set_variable( 'languages', $languages );
+    
+    $restrict_language = $this->get_argument( 'restrict_language', 'any' );
+    $this->set_variable( 'restrict_language', $restrict_language );
+
     $current_date = util::get_datetime_object()->format( 'Y-m-d' );
     $this->set_variable( 'current_date', $current_date );
     $viewing_date = $this->get_argument( 'viewing_date', 'current' );
@@ -104,8 +116,7 @@ class queue_list extends \cenozo\ui\widget\base_list
     $this->set_variable( 'viewing_date', $viewing_date );
 
     // set the viewing date if it is not "current"
-    $class_name = lib::get_class_name( 'database\queue' );
-    if( 'current' != $viewing_date ) $class_name::set_viewing_date( $viewing_date );
+    if( 'current' != $viewing_date ) $queue_class_name::set_viewing_date( $viewing_date );
 
     $setting_manager = lib::create( 'business\setting_manager' );
     foreach( $this->get_record_list() as $record )
@@ -120,11 +131,26 @@ class queue_list extends \cenozo\ui\widget\base_list
       // restrict to the current qnaire
       $record->set_qnaire( $db_restrict_qnaire );
 
+      // restrict by language
+      $modifier = lib::create( 'database\modifier' );
+      if( 'any' != $restrict_language )
+      {
+        // english is default, so if the language is english allow null values
+        if( 'en' == $restrict_language )
+        {
+          $modifier->where_bracket( true );
+          $modifier->where( 'participant_language', '=', $restrict_language );
+          $modifier->or_where( 'participant_language', '=', NULL );
+          $modifier->where_bracket( false );
+        }
+        else $modifier->where( 'participant_language', '=', $restrict_language );
+      }
+
       $this->add_row( $record->id,
         array( 'rank' => $record->rank,
                'enabled' => $setting_manager->get_setting(
                  'queue state', $record->name, $db_restrict_site ),
-               'participant_count' => $record->get_participant_count(),
+               'participant_count' => $record->get_participant_count( $modifier ),
                // I hate to put html here, but the alternative is to implement code in the
                // parent class for this ONLY instance of where we need this functionality.
                'description' => '<div class="title">'.$record->title.'</div>'.
@@ -140,7 +166,7 @@ class queue_list extends \cenozo\ui\widget\base_list
    * @return int
    * @access protected
    */
-  protected function determine_record_count( $modifier = NULL )
+  public function determine_record_count( $modifier = NULL )
   {
     if( NULL == $modifier ) $modifier = lib::create( 'database\modifier' );
     $modifier->where( 'rank', '!=', NULL );
@@ -157,7 +183,7 @@ class queue_list extends \cenozo\ui\widget\base_list
    * @return array( record )
    * @access protected
    */
-  protected function determine_record_list( $modifier = NULL )
+  public function determine_record_list( $modifier = NULL )
   {
     if( NULL == $modifier ) $modifier = lib::create( 'database\modifier' );
     $modifier->where( 'rank', '!=', NULL );

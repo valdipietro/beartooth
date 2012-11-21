@@ -3,7 +3,6 @@
  * onyx_instance_delete.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * push: onyx_instance delete
- * 
- * @package beartooth\ui
  */
 class onyx_instance_delete extends \cenozo\ui\push\base_delete
 {
@@ -51,6 +48,13 @@ class onyx_instance_delete extends \cenozo\ui\push\base_delete
     if( 1 < count( $db_user->get_access_count() ) )
       throw lib::create( 'exception\notice',
         'Cannot delete the onyx instance since it holds more than one role.', __METHOD__ );
+
+    // don't try and delete the instance if it has activity
+    if( 0 < $this->get_record()->get_user()->get_activity_count() )
+      throw lib::create( 'exception\notice',
+        sprintf( 'Onyx instance "%s" cannot be deleted because it has already been used.',
+                 $this->get_record()->get_user()->name ),
+        __METHOD__ );
   }
 
   /**

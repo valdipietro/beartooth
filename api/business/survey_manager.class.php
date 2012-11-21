@@ -3,7 +3,6 @@
  * survey_manager.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\business
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * survey_manager: record
- *
- * @package beartooth\business
  */
 class survey_manager extends \cenozo\singleton
 {
@@ -181,7 +178,7 @@ class survey_manager extends \cenozo\singleton
 
             // TODO: this is temporary code to fix the TOKEN != "NO" problem in limesurvey
             //       for survey 63834
-            if( 63834 == $sid && is_null( $db_tokens->attribute_9 ) )
+            if( 63834 == $db_phase->sid && is_null( $db_tokens->attribute_9 ) )
               $db_tokens->attribute_9 = "UNKNOWN";
 
             $db_tokens->save();

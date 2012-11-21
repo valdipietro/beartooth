@@ -3,7 +3,6 @@
  * interview_view.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * widget interview view
- * 
- * @package beartooth\ui
  */
 class interview_view extends \cenozo\ui\widget\base_view
 {
@@ -45,19 +42,12 @@ class interview_view extends \cenozo\ui\widget\base_view
     $this->add_item( 'uid', 'constant', 'UID' );
     $this->add_item( 'participant', 'constant', 'Participant' );
     $this->add_item( 'qnaire', 'constant', 'Questionnaire' );
-    $this->add_item( 'completed', 'boolean', 'Completed' );
+    $this->add_item( 'completed', 'constant', 'Completed' );
 
-    try
-    {
-      // create the assignment sub-list widget      
-      $this->assignment_list = lib::create( 'ui\widget\assignment_list', $this->arguments );
-      $this->assignment_list->set_parent( $this );
-      $this->assignment_list->set_heading( 'Assignments associated with this interview' );
-    }
-    catch( \cenozo\exception\permission $e )
-    {
-      $this->assignment_list = NULL;
-    }
+    // create the assignment sub-list widget      
+    $this->assignment_list = lib::create( 'ui\widget\assignment_list', $this->arguments );
+    $this->assignment_list->set_parent( $this );
+    $this->assignment_list->set_heading( 'Assignments associated with this interview' );
   }
 
   /**
@@ -77,14 +67,17 @@ class interview_view extends \cenozo\ui\widget\base_view
     $this->set_item( 'uid', $db_participant->uid );
     $this->set_item( 'participant', $participant );
     $this->set_item( 'qnaire', $this->get_record()->get_qnaire()->name );
-    $this->set_item( 'completed', $this->get_record()->completed, true );
+    $this->set_item( 'completed', $this->get_record()->completed ? 'Yes' : 'No' );
 
     // process the child widgets
-    if( !is_null( $this->assignment_list ) )
+    try
     {
       $this->assignment_list->process();
+      $this->assignment_list->remove_column( 'uid' );
+      $this->assignment_list->execute();
       $this->set_variable( 'assignment_list', $this->assignment_list->get_variables() );
     }
+    catch( \cenozo\exception\permission $e ) {}
   }
   
   /**

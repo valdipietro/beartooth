@@ -41,9 +41,9 @@ VALUES( "widget", "assignment", "view", true, "View assignment details." );
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "widget", "assignment", "list", true, "Lists assignments." );
 INSERT INTO operation( type, subject, name, restricted, description )
-VALUES( "push", "home_assignment", "begin", true, "Requests from the queue a new assignment to make a home appointment." );
+VALUES( "widget", "home_assignment", "select", true, "Provides a list of participants ready for a home appointment to begin an assignment with." );
 INSERT INTO operation( type, subject, name, restricted, description )
-VALUES( "push", "site_assignment", "begin", true, "Requests from the queue a new assignment to make a site appointment." );
+VALUES( "widget", "site_assignment", "select", true, "Provides a list of participants ready for a site appointment to begin an assignment with." );
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "push", "assignment", "begin", true, "Begins a new assignment with a particular participant." );
 INSERT INTO operation( type, subject, name, restricted, description )
@@ -171,6 +171,8 @@ VALUES( "pull", "participant", "tree", true, "Returns the number of participants
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "pull", "participant", "primary", true, "Retrieves base participant information." );
 INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "pull", "participant", "list", true, "Retrieves base information for a list of participant." );
+INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "push", "participant", "withdraw", true, "Withdraws the participant (or cancels the withdraw).  This is meant to be used during an interview if the participant suddenly wishes to withdraw." );
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "widget", "participant", "sync", true, "A form to synchronise participants between Beartooth and Mastodon." );
@@ -263,6 +265,22 @@ VALUES( "widget", "queue_restriction", "list", true, "List queue restrictions in
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "pull", "queue_restriction", "primary", true, "Retrieves base queue restriction information." );
 
+-- quota
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "push", "quota", "delete", true, "Removes a quota from the system." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "push", "quota", "edit", true, "Edits a quota's details." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "push", "quota", "new", true, "Add a new quota to the system." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "widget", "quota", "add", true, "View a form for creating a new quota." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "widget", "quota", "view", true, "View a quota's details." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "widget", "quota", "list", true, "List quotas in the system." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "pull", "quota", "primary", true, "Retrieves base quota information." );
+
 -- reports
 -- INSERT INTO operation( type, subject, name, restricted, description )
 -- VALUES( "widget", "productivity", "report", true, "Set up a productivity report." );
@@ -284,6 +302,10 @@ VALUES( "pull", "queue_restriction", "primary", true, "Retrieves base queue rest
 -- VALUES( "widget", "demographics", "report", true, "Set up a new demographics report." );
 -- INSERT INTO operation( type, subject, name, restricted, description )
 -- VALUES( "pull", "demographics", "report", true, "Download a new demographics report." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "widget", "progress", "report", true, "Set up a progress report." );
+INSERT INTO operation( type, subject, name, restricted, description )
+VALUES( "pull", "progress", "report", true, "Download a progress report." );
 INSERT INTO operation( type, subject, name, restricted, description )
 VALUES( "widget", "participant_tree", "report", true, "Set up a participant tree report." );
 INSERT INTO operation( type, subject, name, restricted, description )

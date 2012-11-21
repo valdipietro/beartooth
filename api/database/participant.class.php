@@ -3,7 +3,6 @@
  * participant.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\database
  * @filesource
  */
 
@@ -12,38 +11,9 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * participant: record
- *
- * @package beartooth\database
  */
 class participant extends \cenozo\database\has_note
 {
-  /**
-   * Get the participant's most recent assignment.
-   * This will return the participant's current assignment, or the most recently closed assignment
-   * if the participant is not currently assigned.
-   * @author Patrick Emond <emondpd@mcmaster.ca>
-   * @return assignment
-   * @access public
-   */
-  public function get_last_assignment()
-  {
-    // check the primary key value
-    if( is_null( $this->id ) )
-    {
-      log::warning( 'Tried to query participant with no id.' );
-      return NULL;
-    }
-    
-    // need custom SQL
-    $database_class_name = lib::get_class_name( 'database\database' );
-    $assignment_id = static::db()->get_one(
-      sprintf( 'SELECT assignment_id '.
-               'FROM participant_last_assignment '.
-               'WHERE participant_id = %s',
-               $database_class_name::format_string( $this->id ) ) );
-    return $assignment_id ? lib::create( 'database\assignment', $assignment_id ) : NULL;
-  }
-
   /**
    * Get the participant's most recent, closed assignment.
    * @author Patrick Emond <emondpd@mcmaster.ca>
@@ -64,8 +34,34 @@ class participant extends \cenozo\database\has_note
     $modifier->where( 'end_datetime', '!=', NULL );
     $modifier->order_desc( 'start_datetime' );
     $modifier->limit( 1 );
-    $database_class_name = lib::get_class_name( 'database\assignment' );
-    $assignment_list = $database_class_name::select( $modifier );
+    $assignment_class_name = lib::get_class_name( 'database\assignment' );
+    $assignment_list = $assignment_class_name::select( $modifier );
+
+    return 0 == count( $assignment_list ) ? NULL : current( $assignment_list );
+  }
+
+  /**
+   * Get the participant's current assignment (or null if none is found)
+   * @author Patrick Emond <emondpd@mcmaster.ca>
+   * @return assignment
+   * @access public
+   */
+  public function get_current_assignment()
+  {
+    // check the primary key value
+    if( is_null( $this->id ) )
+    {
+      log::warning( 'Tried to query participant with no id.' );
+      return NULL;
+    }
+    
+    $modifier = lib::create( 'database\modifier' );
+    $modifier->where( 'interview.participant_id', '=', $this->id );
+    $modifier->where( 'end_datetime', '=', NULL );
+    $modifier->order_desc( 'start_datetime' );
+    $modifier->limit( 1 );
+    $assignment_class_name = lib::get_class_name( 'database\assignment' );
+    $assignment_list = $assignment_class_name::select( $modifier );
 
     return 0 == count( $assignment_list ) ? NULL : current( $assignment_list );
   }
@@ -175,31 +171,6 @@ class participant extends \cenozo\database\has_note
   }
   
   /**
-   * Get the last phone call which reached the participant
-   * @author Patrick Emond <emondpd@mcmaster.ca>
-   * @return phone_call
-   * @access public
-   */
-  public function get_last_contacted_phone_call()
-  {
-    // check the primary key value
-    if( is_null( $this->id ) )
-    {
-      log::warning( 'Tried to query participant with no id.' );
-      return NULL;
-    }
-    
-    // need custom SQL
-    $database_class_name = lib::get_class_name( 'database\database' );
-    $phone_call_id = static::db()->get_one(
-      sprintf( 'SELECT phone_call_id '.
-               'FROM participant_last_contacted_phone_call '.
-               'WHERE participant_id = %s',
-               $database_class_name::format_string( $this->id ) ) );
-    return $phone_call_id ? lib::create( 'database\phone_call', $phone_call_id ) : NULL;
-  }
-
-  /**
    * Override parent's magic get method so that supplementary data can be retrieved
    * @author Patrick Emond <emondpd@mcmaster.ca>
    * @param string $column_name The name of the column or table being fetched from the database
@@ -268,12 +239,12 @@ class participant extends \cenozo\database\has_note
         '           ) '.
         '       ) AS start_qnaire_date '.
         'FROM participant '.
-        'LEFT JOIN participant_last_assignment '.
-        'ON participant.id = participant_last_assignment.participant_id  '.
-        'LEFT JOIN assignment '.
-        'ON participant_last_assignment.assignment_id = assignment.id '.
         'LEFT JOIN interview AS current_interview '.
         'ON current_interview.participant_id = participant.id '.
+        'LEFT JOIN interview_last_assignment '.
+        'ON current_interview.id = interview_last_assignment.interview_id  '.
+        'LEFT JOIN assignment '.
+        'ON interview_last_assignment.assignment_id = assignment.id '.
         'LEFT JOIN qnaire AS current_qnaire '.
         'ON current_qnaire.id = current_interview.qnaire_id '.
         'LEFT JOIN qnaire AS next_qnaire '.
@@ -332,4 +303,10 @@ class participant extends \cenozo\database\has_note
    */
   private $start_qnaire_date = NULL;
 }
+
+// define the join to the address table
+$address_mod = lib::create( 'database\modifier' );
+$address_mod->where( 'participant.id', '=', 'participant_primary_address.participant_id', false );
+$address_mod->where( 'participant_primary_address.address_id', '=', 'address.id', false );
+participant::customize_join( 'address', $address_mod );
 ?>

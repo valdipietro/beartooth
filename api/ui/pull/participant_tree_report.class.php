@@ -3,7 +3,6 @@
  * participant_tree.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * Consent form report data.
  * 
  * @abstract
- * @package beartooth\ui
  */
 class participant_tree_report extends \cenozo\ui\pull\base_report
 {
@@ -32,23 +30,23 @@ class participant_tree_report extends \cenozo\ui\pull\base_report
   }
 
   /**
-   * Sets up the operation with any pre-execution instructions that may be necessary.
-   * 
+   * Builds the report.
    * @author Patrick Emond <emondpd@mcmaster.ca>
    * @access protected
    */
-  protected function setup()
+  protected function build()
   {
-    parent::setup();
-
     $restrict_site_id = $this->get_argument( 'restrict_site_id', 0 );
     $restrict_source_id = $this->get_argument( 'restrict_source_id', 0 );
     $db_qnaire = lib::create( 'database\qnaire', $this->get_argument( 'restrict_qnaire_id' ) );
+    $language = $this->get_argument( 'language' );
     
     $site_mod = lib::create( 'database\modifier' );
     if( $restrict_site_id ) $site_mod->where( 'id', '=', $restrict_site_id );
     
-    $this->add_title( 'Generated for the '.$db_qnaire->name.' questionnaire' );
+    $this->add_title( 'for the '.$db_qnaire->name.' questionnaire' );
+    $this->add_title( 'any' == $language ?
+      'for all languages' : 'restricted to the language "'.$language.'"' );
 
     $contents = array();
 
@@ -56,7 +54,9 @@ class participant_tree_report extends \cenozo\ui\pull\base_report
     // We loop through every queue to get the number of participants waiting in it
     $queue_class_name = lib::get_class_name( 'database\queue' );
     $site_class_name = lib::get_class_name( 'database\site' );
-    foreach( $queue_class_name::select() as $db_queue )
+    $queue_mod = lib::create( 'database\modifier' );
+    $queue_mod->order( 'id' );
+    foreach( $queue_class_name::select( $queue_mod ) as $db_queue )
     {
       $row = array( $db_queue->title );
 
@@ -65,13 +65,27 @@ class participant_tree_report extends \cenozo\ui\pull\base_report
         // restrict by site and source, if necessary
         // Note that queue modifiers have to be created for each iteration of the loop since
         // they are modified in the process of getting the participant count
-        $queue_mod = lib::create( 'database\modifier' );
+        $participant_mod = lib::create( 'database\modifier' );
         if( 0 < $restrict_source_id )
-          $queue_mod->where( 'participant.source_id', '=', $restrict_source_id );
+          $participant_mod->where( 'participant_source_id', '=', $restrict_source_id );
+
+        // restrict by language
+        if( 'any' != $language )
+        {
+          // english is default, so if the language is english allow null values
+          if( 'en' == $language )
+          {
+            $participant_mod->where_bracket( true );
+            $participant_mod->where( 'participant_language', '=', $language );
+            $participant_mod->or_where( 'participant_language', '=', NULL );
+            $participant_mod->where_bracket( false );
+          }
+          else $participant_mod->where( 'participant_language', '=', $language );
+        }
 
         $db_queue->set_site( $db_site );
         $db_queue->set_qnaire( $db_qnaire );
-        $row[] = $db_queue->get_participant_count( $queue_mod );
+        $row[] = $db_queue->get_participant_count( $participant_mod );
       }
 
       // add the grand total if we are not restricting by site
@@ -80,11 +94,26 @@ class participant_tree_report extends \cenozo\ui\pull\base_report
         // restrict by source, if necessary
         // Note that queue modifiers have to be created for each iteration of the loop since
         // they are modified in the process of getting the participant count
-        $queue_mod = lib::create( 'database\modifier' );
+        $participant_mod = lib::create( 'database\modifier' );
         if( 0 < $restrict_source_id )
-          $queue_mod->where( 'participant.source_id', '=', $restrict_source_id );
+          $participant_mod->where( 'participant_source_id', '=', $restrict_source_id );
+
+        // restrict by language
+        if( 'any' != $language )
+        {
+          // english is default, so if the language is english allow null values
+          if( 'en' == $language )
+          {
+            $participant_mod->where_bracket( true );
+            $participant_mod->where( 'participant_language', '=', $language );
+            $participant_mod->or_where( 'participant_language', '=', NULL );
+            $participant_mod->where_bracket( false );
+          }
+          else $participant_mod->where( 'participant_language', '=', $language );
+        }
+
         $db_queue->set_site( NULL );
-        $row[] = $db_queue->get_participant_count( $queue_mod );
+        $row[] = $db_queue->get_participant_count( $participant_mod );
       }
 
       $contents[] = $row;

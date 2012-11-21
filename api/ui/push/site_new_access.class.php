@@ -3,7 +3,6 @@
  * site_new_access.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * push: site new_access
- * 
- * @package beartooth\ui
  */
 class site_new_access extends \cenozo\ui\push\site_new_access
 {
@@ -42,7 +39,8 @@ class site_new_access extends \cenozo\ui\push\site_new_access
   {
     $args = parent::convert_to_noid( $args );
 
-    $args['noid']['site']['cohort'] = 'comprehensive';
+    $args['noid']['site']['cohort'] =
+      lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
 
     return $args;
   }

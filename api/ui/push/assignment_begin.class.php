@@ -3,7 +3,6 @@
  * assignment_begin.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: assignment begin
  *
  * Assigns a participant to the user.
- * @package beartooth\ui
  */
 class assignment_begin extends \cenozo\ui\push
 {
@@ -27,6 +25,9 @@ class assignment_begin extends \cenozo\ui\push
   public function __construct( $args )
   {
     parent::__construct( 'assignment', 'begin', $args );
+
+    // we can't use a transaction, otherwise the semaphore in the execute() method won't work
+    lib::create( 'business\session' )->set_use_transaction( false );
   }
 
   /**
@@ -54,9 +55,7 @@ class assignment_begin extends \cenozo\ui\push
   {
     parent::validate();
 
-    $session = lib::create( 'business\session' );
-
-    if( !is_null( $session->get_current_assignment() ) )
+    if( !is_null( lib::create( 'business\session' )->get_current_assignment() ) )
       throw lib::create( 'exception\notice',
         'Please click the refresh button.  If this message appears more than twice '.
         'consecutively report this error to a superior.', __METHOD__ );
@@ -67,6 +66,12 @@ class assignment_begin extends \cenozo\ui\push
       throw lib::create( 'exception\notice',
         'This participant\'s next questionnaire is not yet ready.  '.
         'Please immediately report this problem to a superior.',
+        __METHOD__ );
+
+    // make sure the participant isn't already assigned
+    if( !is_null( $this->db_participant->get_current_assignment() ) )
+      throw lib::create( 'exception\notice',
+        'The participant is already assigned, please refresh the assignment list and try again.',
         __METHOD__ );
   }
 
@@ -81,6 +86,17 @@ class assignment_begin extends \cenozo\ui\push
     parent::execute();
 
     $interview_class_name = lib::get_class_name( 'database\interview' );
+    $session = lib::create( 'business\session' );
+
+    // we need to use a semaphore to avoid race conditions
+    $semaphore = sem_get( getmyinode() );
+    if( !sem_acquire( $semaphore ) )
+    {
+      log::err( sprintf( 'Unable to aquire semaphore for user "%s"', $db_user()->name ) );
+      throw lib::create( 'exception\notice',
+        'The server is busy, please wait a few seconds then click the refresh button.',
+        __METHOD__ );
+    }
 
     // get this participant's interview or create a new one if none exists yet
     $interview_mod = lib::create( 'database\modifier' );
@@ -127,10 +143,14 @@ class assignment_begin extends \cenozo\ui\push
     $db_assignment->interview_id = $db_interview->id;
     $db_assignment->queue_id = $this->get_argument( 'queue_id', NULL );
     $db_assignment->save();
+
+    // release the semaphore, if there is one
+    if( !sem_release( $semaphore ) )
+      log::err( sprintf( 'Unable to release semaphore for user %s', $db_user->name ) );
   }
 
   /**
-   * The participant to assign (may be specified in the constructor from input arguments)
+   * The participant to assign
    * @var database\participant $db_participant
    * @access protected
    */

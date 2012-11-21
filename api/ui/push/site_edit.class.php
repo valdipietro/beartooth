@@ -3,7 +3,6 @@
  * site_edit.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: site edit
  *
  * Edit a site.
- * @package beartooth\ui
  */
 class site_edit extends \cenozo\ui\push\site_edit
 {
@@ -114,7 +112,8 @@ class site_edit extends \cenozo\ui\push\site_edit
     $args = parent::convert_to_noid( $args );
 
     // add in the site's cohort
-    $args['noid']['site']['cohort'] = 'comprehensive';
+    $args['noid']['site']['cohort'] =
+      lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
 
     return $args;
   }

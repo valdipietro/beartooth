@@ -3,7 +3,6 @@
  * site_new.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: site new
  *
  * Create a new site.
- * @package beartooth\ui
  */
 class site_new extends \cenozo\ui\push\site_new
 {
@@ -101,7 +99,8 @@ class site_new extends \cenozo\ui\push\site_new
     $args = parent::convert_to_noid( $args );
 
     // add in the site's cohort
-    $args['columns']['cohort'] = 'comprehensive';
+    $args['columns']['cohort'] =
+      lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
 
     return $args;
   }

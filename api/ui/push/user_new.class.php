@@ -3,7 +3,6 @@
  * user_new.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -14,7 +13,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
  * push: user new
  *
  * Create a new user.
- * @package beartooth\ui
  */
 class user_new extends \cenozo\ui\push\user_new
 {
@@ -33,7 +31,7 @@ class user_new extends \cenozo\ui\push\user_new
   }
 
   /**
-   * Override the parent method to add the cohort to the site key.
+   * Override the parent method to remove the language column add the cohort to the site key.
    * @author Patrick Emond <emondpd@mcmaster.ca>
    * @param array $args An argument list, usually those passed to the push operation.
    * @return array
@@ -41,10 +39,14 @@ class user_new extends \cenozo\ui\push\user_new
    */
   protected function convert_to_noid( $args )
   {
+    // remove additional columns which are not required
+    unset( $args['columns']['language'] );
+
     $args = parent::convert_to_noid( $args );
     if( array_key_exists( 'columns', $args['noid'] ) &&
         array_key_exists( 'site', $args['noid']['columns'] ) )
-      $args['noid']['columns']['site']['cohort'] = 'comprehensive';
+      $args['noid']['columns']['site']['cohort'] =
+        lib::create( 'business\setting_manager' )->get_setting( 'general', 'cohort' );
     return $args;
   }
 }

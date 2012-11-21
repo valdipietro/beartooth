@@ -3,7 +3,6 @@
  * sourcing_required_report.class.php
  * 
  * @author Dean Inglis <inglisd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * Sourcing required report data.
- * 
- * @package beartooth\ui
  */
 class sourcing_required_report extends \cenozo\ui\pull\base_report
 {
@@ -30,15 +27,12 @@ class sourcing_required_report extends \cenozo\ui\pull\base_report
   }
 
   /**
-   * Sets up the operation with any pre-execution instructions that may be necessary.
-   * 
+   * Builds the report.
    * @author Dean Inglis <inglisd@mcmaster.ca>
    * @access protected
    */
-  protected function setup()
+  protected function build()
   {
-    parent::setup;
-
     $participant_class_name = lib::get_class_name( 'database\participant' );
 
     // get the report args

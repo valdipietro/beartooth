@@ -23,7 +23,8 @@
     
       // view call history button
       $( "#{{ widget.full }}__view_history" ).click( function() {
-        slot_load( "{{ widget.full }}", "assignment", "list", { id: {{ participant_id }} } );
+        slot_load( "{{ widget.full }}", "assignment", "list",
+                   { interview_id: {{ interview_id }} } );
         $( "#{{ widget.full }}_slot" ).dialog( {
           title: "Viewing call history for {{ participant_name }}",
           modal: false,
@@ -32,6 +33,16 @@
         } );
       } );
     
+      {% if allow_withdraw %}
+        // withdraw button
+        $( "#{{ widget.full }}__withdraw" ).click( function() {
+          if( ajax_push( "participant", "withdraw",
+                         { "id": {{ participant_id }},
+                           "cancel": {{ withdrawing ? "1" : "0" }} } ) )
+            window.location.reload();
+        } );
+      {% endif %}
+
       // end assignment button
       $( "#{{ widget.full }}__end_assignment" ).click( function() {
         if( ajax_push( "assignment", "end" ) ) window.location.reload();
@@ -71,7 +82,7 @@
       <tr>
         <td class="heading">Participant:</td>
         <td class="content" style="position:relative">
-          {{ participant_name }}
+          {{ participant_name }} ({{ participant_uid }})
           {{ note_widget( widget.full, "participant", participant_id,
                           true, participant_note_count ) }}
         </td>
@@ -145,6 +156,11 @@
                           false, "Assignment Notes" ) }}
         </td>
         <td align="right">
+          {% if allow_withdraw %}
+            <button id="{{ widget.full }}__withdraw"
+                    {{ on_call ? "" : "disabled" }}
+                    style="width: 180px;">{{ withdrawing ? "Cancel " : "" }}Withdraw</button>
+          {% endif %}
         </td>
       </tr>
     </table>

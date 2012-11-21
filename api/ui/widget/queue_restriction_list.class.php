@@ -3,7 +3,6 @@
  * queue_restriction_list.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * widget queue_restriction list
- * 
- * @package beartooth\ui
  */
 class queue_restriction_list extends site_restricted_list
 {
@@ -79,7 +76,7 @@ class queue_restriction_list extends site_restricted_list
    * @return int
    * @access protected
    */
-  protected function determine_record_count( $modifier = NULL )
+  public function determine_record_count( $modifier = NULL )
   {
     if( !is_null( $this->db_restrict_site ) )
     {
@@ -102,7 +99,7 @@ class queue_restriction_list extends site_restricted_list
    * @return array( record )
    * @access protected
    */
-  protected function determine_record_list( $modifier = NULL )
+  public function determine_record_list( $modifier = NULL )
   {
     if( !is_null( $this->db_restrict_site ) )
     {

@@ -3,7 +3,6 @@
  * site_restricted_list.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\ui
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * Base class for all list widgets which may be restricted by site.
- * 
- * @package beartooth\ui
  */
 abstract class site_restricted_list extends \cenozo\ui\widget\site_restricted_list
 {
@@ -25,7 +22,7 @@ abstract class site_restricted_list extends \cenozo\ui\widget\site_restricted_li
    * @return int
    * @access protected
    */
-  protected function determine_record_count( $modifier = NULL )
+  public function determine_record_count( $modifier = NULL )
   {
     if( !is_null( $this->db_restrict_site ) )
     {
@@ -48,7 +45,7 @@ abstract class site_restricted_list extends \cenozo\ui\widget\site_restricted_li
    * @return array( record )
    * @access protected
    */
-  protected function determine_record_list( $modifier = NULL )
+  public function determine_record_list( $modifier = NULL )
   {
     if( !is_null( $this->db_restrict_site ) )
     {

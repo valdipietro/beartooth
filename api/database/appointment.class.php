@@ -3,7 +3,6 @@
  * appointment.class.php
  * 
  * @author Patrick Emond <emondpd@mcmaster.ca>
- * @package beartooth\database
  * @filesource
  */
 
@@ -12,8 +11,6 @@ use cenozo\lib, cenozo\log, beartooth\util;
 
 /**
  * appointment: record
- *
- * @package beartooth\database
  */
 class appointment extends \cenozo\database\record
 {
@@ -38,22 +35,25 @@ class appointment extends \cenozo\database\record
   public function save()
   {
     // make sure there is a maximum of 1 future home appointment and 1 future site appointment
-    $now_datetime_obj = util::get_datetime_object();
-    $modifier = lib::create( 'database\modifier' );
-    $modifier->where( 'participant_id', '=', $this->participant_id );
-    $modifier->where( 'datetime', '>', $now_datetime_obj->format( 'Y-m-d H:i:s' ) );
-    $modifier->where( 'address_id', $this->address_id ? '!=' : '=', NULL );
-    if( !is_null( $this->id ) ) $modifier->where( 'id', '!=', $this->id );
-    $appointment_list = static::select( $modifier );
-    if( 0 < count( $appointment_list ) )
+    if( !$this->completed )
     {
-      $db_appointment = current( $appointment_list );
-      throw lib::create( 'exception\notice',
-        sprintf( 'Unable to add the appointment since the participant already has an upcomming '.
-                 '%s appointment scheduled for %s.',
-                 is_null( $this->address_id ) ? 'site' : 'home',
-                 util::get_formatted_datetime( $db_appointment->datetime ) ),
-        __METHOD__ );
+      $now_datetime_obj = util::get_datetime_object();
+      $modifier = lib::create( 'database\modifier' );
+      $modifier->where( 'participant_id', '=', $this->participant_id );
+      $modifier->where( 'datetime', '>', $now_datetime_obj->format( 'Y-m-d H:i:s' ) );
+      $modifier->where( 'address_id', $this->address_id ? '!=' : '=', NULL );
+      if( !is_null( $this->id ) ) $modifier->where( 'id', '!=', $this->id );
+      $appointment_list = static::select( $modifier );
+      if( 0 < count( $appointment_list ) )
+      {
+        $db_appointment = current( $appointment_list );
+        throw lib::create( 'exception\notice',
+          sprintf( 'Unable to add the appointment since the participant already has an upcomming '.
+                   '%s appointment scheduled for %s.',
+                   is_null( $this->address_id ) ? 'site' : 'home',
+                   util::get_formatted_datetime( $db_appointment->datetime ) ),
+          __METHOD__ );
+      }
     }
 
     parent::save();
@@ -83,7 +83,7 @@ class appointment extends \cenozo\database\record
       return false;
 
     // check the qnaire type
-    $type = 0 < $this->address_id ? 'home' : 'site';
+    $type = is_null( $this->address_id ) ? 'site' : 'home';
     if( $db_participant->current_qnaire_type != $type ) return false;
     
     // TODO: need requirements for shift templates and appointment restricting before the
@@ -96,13 +96,11 @@ class appointment extends \cenozo\database\record
       throw lib::create( 'exception\runtime',
         'Cannot validate an appointment date, participant has no primary address.', __METHOD__ );
 
-    $home = (bool) $this->address_id;
-
     // determine the appointment interval
     $interval = sprintf( 'PT%dM',
                          lib::create( 'business\setting_manager' )->get_setting(
                            'appointment',
-                           $home ? 'home duration' : 'site duration',
+                           'home' == $type ? 'home duration' : 'site duration',
                            $db_site ) );
 
     $start_datetime_obj = util::get_datetime_object( $this->datetime );
@@ -116,7 +114,7 @@ class appointment extends \cenozo\database\record
     $appointment_mod->where( 'DATE( datetime )', '=', $start_datetime_obj->format( 'Y-m-d' ) );
     if( !is_null( $this->id ) ) $appointment_mod->where( 'appointment.id', '!=', $this->id );
     
-    if( !$home )
+    if( 'site' == $type )
     {
       // link to the participant's site id
       $appointment_mod->where( 'participant_site.site_id', '=', $db_site->id );
@@ -170,12 +168,12 @@ class appointment extends \cenozo\database\record
     }
     
     // if we have no diffs on this day, then the site has no slots and home has 1 slot
-    if( 0 == count( $diffs ) ) return $home ? true : false;
+    if( 0 == count( $diffs ) ) return 'home' == $type ? true : false;
 
     // use the 'diff' arrays to define the 'times' array
     $times = array();
     ksort( $diffs );
-    $num_openings = $home ? 1 : 0;
+    $num_openings = 'home' == $type ? 1 : 0;
     foreach( $diffs as $time => $diff )
     {
       $num_openings += $diff;
@@ -183,14 +181,14 @@ class appointment extends \cenozo\database\record
     }
 
     // end day with no openings (4800 is used because it is long after the end of the day)
-    $times[4800] = $home ? 1 : 0;
+    $times[4800] = 'home' == $type ? 1 : 0;
     
     // Now search the times array for any 0's inside the appointment time
     // NOTE: we need to include the time immediately prior to the appointment start time
     $start_time_as_int = intval( $start_datetime_obj->format( 'Gi' ) );
     $end_time_as_int = intval( $end_datetime_obj->format( 'Gi' ) );
     $match = false;
-    $last_slots = $home ? 1 : 0;
+    $last_slots = 'home' == $type ? 1 : 0;
     $last_time = 0;
 
     foreach( $times as $time => $slots )
@@ -241,7 +239,6 @@ class appointment extends \cenozo\database\record
 
 // define the join to the participant_site table
 $participant_site_mod = lib::create( 'database\modifier' );
-$participant_site_mod->where( 'appointment.address_id', '=', NULL );
 $participant_site_mod->where(
   'appointment.participant_id', '=', 'participant_site.participant_id', false );
 appointment::customize_join( 'participant_site', $participant_site_mod );
